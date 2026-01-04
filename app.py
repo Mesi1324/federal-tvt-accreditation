@@ -86,20 +86,29 @@ def main():
     df = pd.DataFrame(raw_data, columns=criteria, index=programs)
     df['Readiness_Score'] = scores
 
-    # --- TAB 1: RANKING ---
+ # --- TAB 1: RANKING ---
     with tab1:
         st.subheader("Accreditation Readiness Scores")
+        # Display the data table
         st.dataframe(df.style.highlight_max(axis=0, subset=['Readiness_Score']))
-        fig = px.radar(df.reset_index(), r='Readiness_Score', theta='index', line_close=True)
-        st.plotly_chart(fig)
+        
+        # FIXED: Changed px.radar to px.line_polar
+        fig = px.line_polar(
+            df.reset_index(), 
+            r='Readiness_Score', 
+            theta='index', 
+            line_close=True,
+            title="Comparative Program Readiness"
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-    # --- TAB 2: SENSITIVITY HEATMAP (Scientific Edge) ---
+    # --- TAB 2: SENSITIVITY HEATMAP ---
     with tab2:
         st.subheader("Weight Sensitivity Heatmap")
         st.write("How does changing the importance of a criterion change the #1 Rank?")
         
         sensitivity_matrix = []
-        variations = np.linspace(0.1, 0.5, 5) # Testing different weight levels
+        variations = np.linspace(0.1, 0.5, 5) 
         
         for v in variations:
             row = []
@@ -112,28 +121,35 @@ def main():
                 row.append(winner_idx)
             sensitivity_matrix.append(row)
         
-        fig_heat, ax = plt.subplots()
-        sns.heatmap(sensitivity_matrix, annot=True, xticklabels=criteria, yticklabels=variations, ax=ax, cmap="YlGnBu")
+        # FIXED: Robust Matplotlib figure handling for Streamlit Cloud
+        fig_heat, ax = plt.subplots(figsize=(10, 5))
+        sns.heatmap(sensitivity_matrix, annot=True, xticklabels=criteria, yticklabels=[f"{round(v,2)}" for v in variations], ax=ax, cmap="YlGnBu")
         plt.xlabel("Criterion adjusted")
         plt.ylabel("Weight Variance")
         st.pyplot(fig_heat)
-        st.info("Legend: Numbers inside boxes represent the index of the winning program. If the number changes as you move down a column, your ranking is sensitive to that weight.")
+        plt.close(fig_heat) # Clean up memory
+        
+        st.info("Legend: Numbers inside boxes represent the index of the winning program. 0=Automotive, 1=ICT, etc. If the number changes in a column, the ranking is sensitive.")
 
-    # --- TAB 3: AI NARRATIVE (Scientific Edge) ---
+    # --- TAB 3: AI NARRATIVE ---
     with tab3:
         st.subheader("AI-Generated ABET Self-Study Draft")
         target_prog = st.selectbox("Select Program to Generate Report", programs)
         prog_score = df.loc[target_prog, 'Readiness_Score']
         
-        # Determine strengths/weaknesses for AI context
-        row = df.loc[target_prog, criteria]
-        strength = (row.max(), row.idxmax())
-        weakness = (row.min(), row.idxmin())
+        # Get actual data row for context
+        row_vals = df.loc[target_prog, criteria]
+        strength_col = row_vals.idxmax()
+        weakness_col = row_vals.idxmin()
         
-        report_text = AINarrativeGenerator.generate_report(target_prog, prog_score, "Ready" if prog_score > 0.7 else "Action Required", strength, weakness)
+        report_text = AINarrativeGenerator.generate_report(
+            target_prog, 
+            prog_score, 
+            "Ready" if prog_score > 0.7 else "Action Required", 
+            [row_vals[strength_col], strength_col], 
+            [row_vals[weakness_col], weakness_col]
+        )
         st.markdown(report_text)
-        if st.button("Export Narrative to PDF"):
-            st.success("Report Drafted Successfully.")
 
     # --- TAB 4: NATIONAL DASHBOARD (Scientific Edge) ---
     with tab4:
@@ -149,4 +165,5 @@ def main():
             st.write("This dashboard allows the Federal Board to identify regional clusters of excellence and programs in need of intervention.")
 
 if __name__ == "__main__":
+
     main()
