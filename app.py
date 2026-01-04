@@ -9,7 +9,7 @@ import google.generativeai as genai
 from datetime import datetime
 
 # ==========================================
-# 1. AI NARRATIVE ENGINE (FIXED MODEL)
+# 1. AI NARRATIVE ENGINE (FIXED MODEL NAME)
 # ==========================================
 class AINarrativeGenerator:
     """Generates ABET/ETA reports using Google Gemini AI."""
@@ -29,8 +29,9 @@ class AINarrativeGenerator:
 
         try:
             genai.configure(api_key=api_key)
-            # FIX: Switched to 'gemini-pro' which is the stable production model
-            model = genai.GenerativeModel('gemini-pro')
+            
+            # FIX: Updated to 'gemini-1.5-flash' which is the current stable, free model
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             # PROMPT TAILORED FOR FDRE TVT INSTITUTE
             prompt = (
@@ -61,7 +62,7 @@ class AINarrativeGenerator:
             return response.text
             
         except Exception as e:
-            return f"⚠️ AI Service Error: {str(e)}\n\n*Tip: Ensure your API Key has access to 'gemini-pro'.*"
+            return f"⚠️ AI Service Error: {str(e)}\n\n*Tip: Check that your API Key is valid in Google AI Studio.*"
 
 # ==========================================
 # 2. NATIONAL STANDARDS & TARGETS
