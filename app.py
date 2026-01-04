@@ -6,31 +6,42 @@ import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
+import google.generativeai as genai
 
 # ==========================================
 # 1. AI-DRIVEN NARRATIVE ENGINE
 # ==========================================
 class AINarrativeGenerator:
-    """Generates ABET Self-Study Report (SSR) text based on MCDM data."""
+    """Generates real ABET reports using Google Gemini AI."""
     @staticmethod
-    def generate_report(program_name, score, status, strengths, weaknesses):
-        # In production, this would call OpenAI/Anthropic API
-        narrative = f"""
-        ### ABET Self-Study Executive Summary: {program_name}
-        **Overall Readiness Index:** {score:.2f}
-        **Accreditation Status:** {status}
-        
-        **Analysis of Student Outcomes:**
-        The {program_name} program demonstrates a {strengths[0]} performance in {strengths[1]}. 
-        However, the current assessment indicates a critical gap in {weaknesses[1]}, where the 
-        department scored {weaknesses[0]}. 
-        
-        **Improvement Action Plan:**
-        Based on the MCDM Gap Analysis, the institute will reallocate 15% of the next 
-        fiscal budget to address the deficiencies in {weaknesses[1]} to ensure full 
-        compliance with international ABET Student Outcome standards.
-        """
-        return narrative
+    def generate_report(program_name, score, status, strength, weakness):
+        try:
+            # 1. Access the secret key
+            api_key = st.secrets["GOOGLE_API_KEY"]
+            genai.configure(api_key=api_key)
+            
+            # 2. Select the model
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            
+            # 3. Create the prompt for the AI
+            prompt = f"""
+            You are an expert academic accreditation consultant specializing in ABET and ETA standards for TVT Institutes.
+            Write a professional Self-Study Report (SSR) summary for the {program_name} program.
+            Data:
+            - Readiness Score: {score:.2f}/1.0
+            - Accreditation Status: {status}
+            - Primary Strength: {strength[1]} (Score: {strength[0]})
+            - Primary Weakness: {weakness[1]} (Score: {weakness[0]})
+            
+            The tone should be formal and institutional. Use headings and bullet points.
+            """
+            
+            # 4. Generate content
+            response = model.generate_content(prompt)
+            return response.text
+            
+        except Exception as e:
+            return f"⚠️ AI Service currently unavailable. (Error: {str
 
 # ==========================================
 # 2. NATIONAL BENCHMARKING DATA
@@ -167,3 +178,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
