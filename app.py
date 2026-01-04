@@ -9,7 +9,7 @@ import google.generativeai as genai
 from datetime import datetime
 
 # ==========================================
-# 1. AI NARRATIVE ENGINE
+# 1. AI NARRATIVE ENGINE (FIXED MODEL)
 # ==========================================
 class AINarrativeGenerator:
     """Generates ABET/ETA reports using Google Gemini AI."""
@@ -29,7 +29,8 @@ class AINarrativeGenerator:
 
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # FIX: Switched to 'gemini-pro' which is the stable production model
+            model = genai.GenerativeModel('gemini-pro')
             
             # PROMPT TAILORED FOR FDRE TVT INSTITUTE
             prompt = (
@@ -60,17 +61,15 @@ class AINarrativeGenerator:
             return response.text
             
         except Exception as e:
-            return f"⚠️ AI Service Error: {str(e)}"
+            return f"⚠️ AI Service Error: {str(e)}\n\n*Tip: Ensure your API Key has access to 'gemini-pro'.*"
 
 # ==========================================
 # 2. NATIONAL STANDARDS & TARGETS
 # ==========================================
 def fetch_national_targets():
     """
-    Since there is only one institute, we compare Departments against 
-    National Ministry (MOLS) Targets rather than other institutes.
+    Comparison against National Ministry (MOLS) Targets.
     """
-    # These represent the 'Ideal' National Targets for Ethiopian TVT
     return {
         "Min_COC_Pass_Rate": 85.0,
         "Min_Coop_Rate": 80.0,
@@ -114,7 +113,6 @@ def main():
     # Header Section
     c1, c2 = st.columns([1, 5])
     with c1:
-        # Placeholder for Institute Logo
         st.write("🇪🇹") 
     with c2:
         st.title("FDRE Technical & Vocational Training Institute")
@@ -122,36 +120,24 @@ def main():
     
     st.markdown("---")
 
-    # --- SHARED DATA SETUP ---
-    # Specific Departments requested + 2 supplementary for matrix robustness
+    # --- SHARED DATA SETUP (Only 3 Departments) ---
     programs = [
         "Building Construction Tech", 
         "Automotive Technology", 
-        "Manufacturing Technology", 
-        "Electrical/Electronics", 
-        "ICT & Database Admin"
+        "Manufacturing Technology"
     ]
     
-    # CRITERIA DEFINITIONS (Contextualized):
-    # 1. ABET_SO: Student Outcomes (International Standard)
-    # 2. COC_Pass_Rate: Certificate of Competency (National ETA Standard)
-    # 3. Coop_Training: Industry Cooperative Training Rate
-    # 4. Trainer_Cert: C-Level certified trainers
-    # 5. Kaizen_Audit: 5S and Continuous Improvement Audit Score
-    # 6. Cost_Efficiency: Unit cost per trainee
-    
+    # CRITERIA DEFINITIONS:
     criteria = ["ABET_SO_Compliance", "COC_Pass_Rate", "Coop_Training_Rate", "Trainer_Cert_Level", "Kaizen_Audit", "Unit_Cost"]
     
-    # Synthetic Data reflecting realistic TVT scenarios
-    # Building: High Kaizen, Med Cost
-    # Auto: High Cost, High Coop, Med COC
-    # Mfg: High COC, High Cost
+    # Synthetic Data (3 Rows x 6 Cols)
+    # Row 1: Building (Strong Kaizen, Med Cost)
+    # Row 2: Automotive (High Cost, High Coop, Med COC)
+    # Row 3: Manufacturing (High COC, High Cost, Strong Certs)
     raw_data = np.array([
         [88, 92, 85, 90, 95, 4800], # Building Construction
         [85, 80, 95, 88, 85, 6200], # Automotive
-        [90, 94, 88, 92, 90, 5800], # Manufacturing
-        [82, 85, 80, 85, 75, 4100], # Electrical
-        [94, 88, 75, 80, 82, 3500]  # ICT
+        [90, 94, 88, 92, 90, 5800]  # Manufacturing
     ])
     
     # Weights (Prioritizing COC and Coop for National Context)
@@ -199,12 +185,12 @@ def main():
             )
             st.plotly_chart(fig, use_container_width=True)
             
-        st.info("ℹ️ **Protocol Note:** Building Construction, Automotive, and Manufacturing are currently prioritized for the upcoming ABET site visit.")
+        st.info("ℹ️ **Protocol Note:** These three departments are the priority pilot programs for the current ABET site visit cycle.")
 
     # --- TAB 2: SENSITIVITY HEATMAP ---
     with tab2:
         st.subheader("Weight Sensitivity Analysis")
-        st.markdown("Analyze if the **Department Ranking** changes based on the importance given to specific criteria (e.g., favoring *COC Pass Rate* vs *Kaizen*).")
+        st.markdown("Analyze if the **Department Ranking** changes based on the importance given to specific criteria.")
         
         sensitivity_matrix = []
         variations = np.linspace(0.1, 0.5, 5) 
@@ -232,7 +218,7 @@ def main():
         )
         st.pyplot(fig_heat)
         plt.close(fig_heat)
-        st.caption("Legend: 0=Building, 1=Auto, 2=Mfg. If the number remains constant, the lead department is robust.")
+        st.caption("Legend: 0=Building, 1=Automotive, 2=Manufacturing. If the number remains constant vertically, the ranking is stable.")
 
     # --- TAB 3: AI NARRATIVE ---
     with tab3:
